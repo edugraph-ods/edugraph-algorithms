@@ -25,7 +25,7 @@ Calcular el **minímo número de ciclos** que necesita un estudiante para aproba
 - Dependencias en los cursos (prerrequisitos).
 - Casos de desaprobación.
 
-## Algoritmos propuestos
+## Algoritmos utilizados
 
 ### 1. Representación como un grafo dirigido acíclico (DAG)
 
@@ -34,7 +34,11 @@ Calcular el **minímo número de ciclos** que necesita un estudiante para aproba
 - Ejemplo: A -> B, A -> C, (B,C) -> D
 Esto permite hacer un algoritmo de orden topológico para determinar el orden de los cursos.
 
-Aqui se puede usar: BFS/Orden Topológico para detectar ciclos y recorrer los cursos en orden.
+
+Para este paso usamos DFS (Depth First Search/Busqueda en profundidad).
+- Detecta si existe ciclos en la malla (caso inválido).
+- Genera orden topológico de los cursos, que luego guía la planificación.
+- Ejemplo de recorrido: ['A','C','B','D']
 
 
 ### 2. Definir el estado de un curso (Programación Dinámica con máscaras)
@@ -57,9 +61,16 @@ Definimos la siguiente función:
 
 1. Identidicamos los cursos disponibles en este estado (prerrequisitos cumplidos y no aprobado aún).
 2. Agrupamos cursos disponibles respetando el límite de crédito por ciclo.
-3. Por lo tanto:
-- Si todos aprobado -> actualizamos la mask
-- Si alguno desaprobado -> no cambia el bit de ese curso, por lo que se debe repetir en el siguiente ciclo.
+3. Para cada combinación:
+- Actualizar la máscara (bitmask) con los cursos aprobados.
+- Avanzar al siguiente ciclo.
+- Tomar el mínimo entre todas las combinaciones.
+
+Casos especiales:
+
+- Si todos los cursos están aprobados: (mas=1111) -> dp(mask) = 0
+- Si no hay cursos disponibles -> estado inválido
+- Si un curso fue desaprobado, su bit no cambia y se repite en el próximo ciclo.
 
 ### 4. Uso de la Memoización
 
@@ -104,11 +115,22 @@ Tiempo total: 4 ciclos.
 
 ### Conceptos aplicados
 
-1. BFS/Orden Topológico: Verificar si hay ciclos en el grafo, es decir, dependencias circulares.
-2. Programación dinamica (con memoización) -> guardar el mínimo número de ciclos desde un estados (mask) ya evaluado.
-3. Mask (bitmaskiing): Representa el conjunto de cursos aprobados.
+1. DFS (orden topológico):
+    - Recorrido del grafo para detectar ciclos y generar una secuencia válida de cursos.
+    - Se puede visualizar el paso a paso del recorrido.
+2. Programación dinámica con bitmasking:
+    - Cada estado es un conjunto de cursos aprobados.
+    - Se minimiza el número de ciclos mediante transiciones entre estados.
+3. Memoización:
+    - Optimiza el cálculo evitando los estados repetidos. 
 
 
 ### Conclusiones
 
-El objetivo de la implementación de la Programación Dinámica con máscaras es optimizar la selección de cursos en cada ciclo, considerando las restricciones de créditos y prerrequisitos, para minimizar el número total de ciclos necesarios para completar la malla académica, incluso en presencia de desaprobaciones.
+La combinación de DFS y DP con bitmasking permite:
+
+- Detectar dependencias y ciclos en la malla académica.
+
+- Optimizar la selección de cursos por ciclo respetando límites de créditos.
+
+- Calcular de forma eficiente el mínimo número de ciclos necesarios para completar la malla, incluso considerando desaprobaciones.
