@@ -1,6 +1,9 @@
-﻿from functools import lru_cache
+from functools import lru_cache
 from itertools import combinations
 from collections import defaultdict
+import networkx as nx
+import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
 
 def leer_malla():
     semestres = int(input("Número total de semestres: "))
@@ -143,6 +146,134 @@ def main():
     # Paso 2: DP con bitmask para planificación
     planificar_ciclos(cursos, max_creditos)
 
-if __name__ == "__main__":
+def visualizar_grafo(cursos, cursos_por_semestre):
+    G = nx.DiGraph()
+    
+    # Mapeo de colores según el estado
+    color_map = {
+        'APROBADO': 'green',
+        'DESAPROBADO': 'red',
+        'NO RINDIO': 'orange',
+        None: 'gray'
+    }
+    
+    # Recolectar todos los cursos únicos (incluyendo prerrequisitos)
+    todos_los_cursos = {curso['nombre']: curso for curso in cursos}
+    
+    # Agregar nodos con atributos
+    for curso in cursos:
+        G.add_node(curso['nombre'], 
+                  creditos=curso['creditos'],
+                  estado=curso['estado'],
+                  semestre=curso.get('semestre', 0) + 1)
+    
+    # Agregar aristas (prerrequisitos)
+    for curso in cursos:
+        for prereq in curso['prereqs']:
+            if prereq.lower() != 'ninguno':
+                # Si el prerrequisito no está en los cursos, lo añadimos como nodo
+                if prereq not in G:
+                    G.add_node(prereq, 
+                             creditos=0, 
+                             estado='NO RINDIO',
+                             semestre=0)  # Semestre 0 para cursos previos
+                G.add_edge(prereq, curso['nombre'])
+    
+    # Configuración del gráfico
+    plt.figure(figsize=(16, 12))
+    
+    # Crear un layout jerárquico para mejor visualización
+    pos = {}
+    
+    # Primero posicionamos los cursos por semestre
+    max_semestre = max([c.get('semestre', 0) for c in cursos] + [0])
+    
+    # Espacio vertical para los cursos por semestre
+    y_offset = 0
+    
+    # Posicionar cursos por semestre
+    for sem in range(max_semestre + 1):
+        cursos_sem = [c['nombre'] for c in cursos if c.get('semestre', 0) == sem]
+        if cursos_sem:
+            y_offset = max(3, len(cursos_sem))  # Mínimo 3 de espacio vertical
+            for i, curso in enumerate(cursos_sem):
+                pos[curso] = (sem * 2, -i * (10.0 / y_offset))
+    
+    # Posicionar cursos previos (sin semestre) a la izquierda
+    cursos_previos = [n for n in G.nodes() if n not in pos]
+    if cursos_previos:
+        y_offset = max(3, len(cursos_previos))
+        for i, curso in enumerate(cursos_previos):
+            pos[curso] = (-1, -i * (10.0 / y_offset))
+    
+    # Dibujar nodos
+    for node in G.nodes():
+        node_data = next((c for c in cursos if c['nombre'] == node), 
+                        {'nombre': node, 'creditos': 0, 'estado': 'NO RINDIO'})
+        
+        # Dibujar nodo
+        nx.draw_networkx_nodes(G, pos, nodelist=[node],
+                             node_color=color_map.get(node_data.get('estado'), 'gray'),
+                             node_size=2000,
+                             node_shape='s',
+                             alpha=0.8)
+        
+        # Etiqueta con nombre y créditos
+        creditos = node_data.get('creditos', 0)
+        label = f"{node}"
+        if creditos > 0:
+            label += f"\n({creditos} créditos)"
+            
+        plt.text(pos[node][0], pos[node][1], label, 
+                ha='center', va='center',
+                bbox=dict(facecolor='white', alpha=0.8, boxstyle='round,pad=0.3'))
+    
+    # Dibujar aristas
+    nx.draw_networkx_edges(G, pos, 
+                          edge_color='gray',
+                          arrows=True,
+                          arrowsize=15,
+                          node_size=2000,
+                          width=1.5,
+                          connectionstyle='arc3,rad=0.1')  # Curvar las flechas
+    
+    # Añadir títulos y leyenda
+    plt.title('Malla Curricular - Visualización de Cursos y Prerrequisitos\n', fontsize=14, pad=20)
+    plt.suptitle('Semestres (izq → der) | Código de colores: Verde=Aprobado, Rojo=Desaprobado, Naranja=No rindió, Gris=Sin estado\n', 
+                fontsize=9, y=0.97, color='#555555')
+    
+    # Leyenda mejorada
+    legend_elements = [
+        Patch(facecolor='green', label='Aprobado'),
+        Patch(facecolor='red', label='Desaprobado'),
+        Patch(facecolor='orange', label='No rindió'),
+        Patch(facecolor='gray', label='Sin estado')
+    ]
+    
+    plt.legend(handles=legend_elements, 
+              loc='upper right', 
+              bbox_to_anchor=(1.0, 1.0),
+              title="Estado del curso")
+    
+    # Ajustar márgenes y mostrar
+    plt.margins(0.2)
+    plt.axis('off')
+    plt.tight_layout()
+    plt.show()
+
+def main():
     print("=== Simulación de planificación académica con DFS + DP (bitmask) ===")
+    cursos, cursos_por_semestre, max_creditos = leer_malla()
+    asignar_estado_cursos(cursos_por_semestre)
+    
+    # Visualizar el grafo
+    visualizar_grafo(cursos, cursos_por_semestre)
+    
+    # Continuar con la planificación si se desea
+    continuar = input("¿Desea continuar con la planificación? (s/n): ").strip().lower()
+    if continuar == 's':
+        orden_topologico = dfs_topologico(cursos)
+        planificar_ciclos(orden_topologico, max_creditos)
+
+if __name__ == "__main__":
     main()

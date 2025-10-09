@@ -134,3 +134,17 @@ La combinación de DFS y DP con bitmasking permite:
 - Optimizar la selección de cursos por ciclo respetando límites de créditos.
 
 - Calcular de forma eficiente el mínimo número de ciclos necesarios para completar la malla, incluso considerando desaprobaciones.
+
+### Bibliotecas
+
+- NetworkX: para la representación y análisis de grafos.
+
+```
+pip install networkx
+```
+
+- Matplotlib: para la visualización de grafos.
+
+```
+pip install matplotlib
+```
